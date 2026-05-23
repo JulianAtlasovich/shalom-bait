@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa Organizada שלום בית</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="logo"><span>🏠</span> Casa Organizada שלום בית</div>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)" title="Semana anterior">←</button>
+      <div id="week-label"></div>
+      <button onclick="changeWeek(1)" title="Semana siguiente">→</button>
+      <button class="btn btn-outline" onclick="goToday()" style="padding:6px 12px;font-size:12px;">Hoy</button>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" onclick="downloadDataJson()">⬇ JSON</button>
+      <button class="btn btn-outline" onclick="openImportJsonDialog()">⬆ Importar JSON</button>
+      <button class="btn btn-outline" onclick="openManage()">📋 Tareas</button>
+      <button class="btn btn-primary" onclick="openAddTask()">+ Nueva tarea</button>
+    </div>
+  </header>
+
+  <input id="import-json-input" type="file" accept="application/json,.json" hidden>
+
+  <div class="legend-bar">
+    <span class="legend-label">Personas:</span>
+    <div id="people-legend-items" class="people-legend-items"></div>
+    <button class="legend-add-person" type="button" onclick="addPerson()">+ Persona</button>
+  </div>
+
+  <div id="debts-banner">
+    <div class="debt-header">⚠ Tareas pendientes de dias anteriores</div>
+    <div class="debt-list" id="debts-list"></div>
+  </div>
+
+  <div class="calendar-container">
+    <div class="calendar-grid" id="calendar-grid"></div>
+  </div>
+
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Nueva tarea</div>
+        <button class="modal-close" onclick="closeModal('task-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre de la tarea</label>
+          <input class="form-input" id="task-name-input" type="text" placeholder="Ej: Cocinar">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nota (opcional)</label>
+          <input class="form-input" id="task-note-input" type="text" placeholder="Ej: Dejar lista la mesa antes de las 21:00">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Responsable por cada dia de la semana</label>
+          <div class="assignment-grid" id="assignment-grid"></div>
+          <p class="assignment-helper">Adriana puede quedar asignada solo una vez por semana.</p>
+          <div class="freq-presets">
+            <button class="freq-preset" onclick="setPreset('rotate')">Rotar Juli/Meli</button>
+            <button class="freq-preset" onclick="setPreset('juli-weekdays')">Lun-Vie Juli</button>
+            <button class="freq-preset" onclick="setPreset('meli-weekdays')">Lun-Vie Meli</button>
+            <button class="freq-preset" onclick="setPreset('clear')">Limpiar</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="delete-task-btn" onclick="deleteCurrentTask()" style="display:none;margin-right:auto">🗑 Eliminar</button>
+        <button class="btn btn-outline" onclick="closeModal('task-modal')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveTask()">Guardar tarea</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="manage-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Gestionar tareas</div>
+        <button class="modal-close" onclick="closeModal('manage-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="manage-list" id="manage-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('manage-modal');openAddTask()">+ Nueva tarea</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
