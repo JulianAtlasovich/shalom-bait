@@ -17,24 +17,15 @@
       <button class="btn btn-outline" onclick="goToday()" style="padding:6px 12px;font-size:12px;">Hoy</button>
     </div>
     <div class="header-actions">
-      <button class="btn btn-outline" onclick="downloadDataJson()">⬇ JSON</button>
-      <button class="btn btn-outline" onclick="openImportJsonDialog()">⬆ Importar JSON</button>
       <button class="btn btn-outline" onclick="openManage()">📋 Tareas</button>
       <button class="btn btn-primary" onclick="openAddTask()">+ Nueva tarea</button>
     </div>
   </header>
 
-  <input id="import-json-input" type="file" accept="application/json,.json" hidden>
-
   <div class="legend-bar">
     <span class="legend-label">Personas:</span>
     <div id="people-legend-items" class="people-legend-items"></div>
     <button class="legend-add-person" type="button" onclick="addPerson()">+ Persona</button>
-  </div>
-
-  <div id="debts-banner">
-    <div class="debt-header">⚠ Tareas pendientes de dias anteriores</div>
-    <div class="debt-list" id="debts-list"></div>
   </div>
 
   <div class="calendar-container">

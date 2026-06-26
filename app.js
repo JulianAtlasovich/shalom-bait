@@ -88,61 +88,6 @@ async function pushRemoteState(snapshot) {
   }
 }
 
-function downloadDataJson() {
-  const blob = new Blob([JSON.stringify(getStateSnapshot(), null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `casa-organizada-${getBuenosAiresTodayKey()}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function openImportJsonDialog() {
-  const input = document.getElementById("import-json-input");
-  if (!input) {
-    return;
-  }
-  input.value = "";
-  input.click();
-}
-
-async function importDataJsonFromFile(file) {
-  if (!file) {
-    return;
-  }
-
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("Formato invalido");
-    }
-
-    hydrateStateFromData(parsed);
-    state.weekOffset = 0;
-    state.editingTaskId = null;
-    state.newTask = {
-      name: "",
-      note: "",
-      assignments: emptyAssignments()
-    };
-
-    saveState();
-    renderPeopleLegend();
-    renderWeekLabel();
-    renderCalendar();
-    renderDebts();
-    renderAssignmentGrid();
-    showToast("✅ JSON importado correctamente");
-  } catch (error) {
-    console.error(error);
-    showToast("⚠ No se pudo importar el JSON");
-  }
-}
-
 function makeTaskId() {
   return "task_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
 }
@@ -305,7 +250,6 @@ function updatePersonColor(personId, color) {
   saveState();
   renderPeopleLegend();
   renderCalendar();
-  renderDebts();
 }
 
 function renamePerson(personId) {
@@ -323,7 +267,6 @@ function renamePerson(personId) {
   saveState();
   renderPeopleLegend();
   renderCalendar();
-  renderDebts();
   renderAssignmentGrid();
 }
 
@@ -343,7 +286,6 @@ function addPerson() {
   saveState();
   renderPeopleLegend();
   renderCalendar();
-  renderDebts();
   renderAssignmentGrid();
 }
 
@@ -372,7 +314,6 @@ function removePerson(personId) {
   saveState();
   renderPeopleLegend();
   renderCalendar();
-  renderDebts();
   renderAssignmentGrid();
 }
 
@@ -493,7 +434,6 @@ async function refreshRemoteState() {
     renderPeopleLegend();
     renderWeekLabel();
     renderCalendar();
-    renderDebts();
     renderAssignmentGrid();
   } catch (error) {
     console.warn("No se pudo refrescar estado remoto", error);
@@ -565,49 +505,6 @@ function friendlyDate(dateKey) {
 function renderWeekLabel() {
   const dateKeys = getWeekDateKeys();
   document.getElementById("week-label").textContent = `${formatShortDateFromKey(dateKeys[0])} - ${formatShortDateFromKey(dateKeys[6])}`;
-}
-
-function renderDebts() {
-  const today = getBuenosAiresTodayKey();
-  const banner = document.getElementById("debts-banner");
-  const list = document.getElementById("debts-list");
-  const debts = [];
-
-  // Solo mostrar pendientes de la semana actual (lunes hasta hoy).
-  const start = getMondayKey(today);
-
-  for (let cursor = start; cursor < today; cursor = addDaysToKey(cursor, 1)) {
-    const dateStr = cursor;
-    state.tasks.forEach((task) => {
-      const assignee = getAssigneeForDate(task, dateStr);
-      if (!assignee) {
-        return;
-      }
-
-      const key = `${task.id}_${dateStr}`;
-      if (state.checks[key]?.done) {
-        return;
-      }
-
-      debts.push({ task, dateStr, assignee });
-    });
-  }
-
-  if (debts.length === 0) {
-    banner.style.display = "none";
-    return;
-  }
-
-  banner.style.display = "block";
-  list.innerHTML = debts
-    .map(({ task, dateStr, assignee }) => {
-      return `<div class="debt-chip">
-        <span class="person-dot" style="background:${getPersonColor(assignee)}"></span>
-        <strong>${getPersonName(assignee)}</strong>: ${task.name}
-        <span style="color:var(--text-muted);font-size:11px"> - ${friendlyDate(dateStr)}</span>
-      </div>`;
-    })
-    .join("");
 }
 
 function renderCalendar() {
@@ -778,7 +675,6 @@ function toggleCheck(taskId, dateStr) {
 
   saveState();
   renderCalendar();
-  renderDebts();
 }
 
 function markDayCompleted(dateStr) {
@@ -808,7 +704,6 @@ function markDayCompleted(dateStr) {
 
   saveState();
   renderCalendar();
-  renderDebts();
   showToast(`✅ ${changed} tareas marcadas como hechas`);
 }
 
@@ -859,14 +754,6 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove("active");
-}
-
-const importJsonInput = document.getElementById("import-json-input");
-if (importJsonInput) {
-  importJsonInput.addEventListener("change", (event) => {
-    const file = event.target.files && event.target.files[0];
-    void importDataJsonFromFile(file);
-  });
 }
 
 document.querySelectorAll(".modal-overlay").forEach((overlay) => {
@@ -1028,7 +915,6 @@ function saveTask() {
   saveState();
   closeModal("task-modal");
   renderCalendar();
-  renderDebts();
 }
 
 function deleteCurrentTask() {
@@ -1050,7 +936,6 @@ function deleteCurrentTask() {
   saveState();
   closeModal("task-modal");
   renderCalendar();
-  renderDebts();
   showToast("🗑 Tarea eliminada");
 }
 
@@ -1108,7 +993,6 @@ function quickDelete(taskId) {
   saveState();
   openManage();
   renderCalendar();
-  renderDebts();
   showToast("🗑 Tarea eliminada");
 }
 
@@ -1157,12 +1041,10 @@ async function initializeApp() {
   renderPeopleLegend();
   renderWeekLabel();
   renderCalendar();
-  renderDebts();
   startRemotePolling();
 
   setInterval(() => {
     renderCalendar();
-    renderDebts();
   }, 60000);
 }
 
