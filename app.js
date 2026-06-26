@@ -13,6 +13,7 @@ const DEFAULT_PEOPLE = [
 const DAYS_SHORT = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
 const STORAGE_KEY = "casaOrganizada_v3";
 const BA_TIMEZONE = "America/Argentina/Buenos_Aires";
+const REMOTE_SYNC_INTERVAL_MS = 15000;
 
 let state = {
   tasks: [],
@@ -27,12 +28,64 @@ let state = {
   }
 };
 
+let lastRemoteRevision = null;
+let remotePollTimer = null;
+
 function getStateSnapshot() {
   return {
     tasks: state.tasks,
     checks: state.checks,
     people: state.people
   };
+}
+
+function shouldUseRemoteState() {
+  return typeof window !== "undefined" && window.location.protocol !== "file:";
+}
+
+function persistLocalSnapshot(snapshot) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+}
+
+async function fetchRemoteState() {
+  if (!shouldUseRemoteState()) {
+    return null;
+  }
+
+  const response = await fetch("/api/state", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`No se pudo obtener estado remoto (${response.status})`);
+  }
+
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object" || !payload.data || typeof payload.data !== "object") {
+    throw new Error("Respuesta remota invalida");
+  }
+
+  return payload;
+}
+
+async function pushRemoteState(snapshot) {
+  if (!shouldUseRemoteState()) {
+    return;
+  }
+
+  const response = await fetch("/api/state", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ data: snapshot })
+  });
+
+  if (!response.ok) {
+    throw new Error(`No se pudo guardar estado remoto (${response.status})`);
+  }
+
+  const payload = await response.json();
+  if (payload && typeof payload.revision === "string") {
+    lastRemoteRevision = payload.revision;
+  }
 }
 
 function downloadDataJson() {
@@ -364,7 +417,21 @@ function hydrateStateFromData(parsed) {
   });
 }
 
-function loadState() {
+async function loadState() {
+  if (shouldUseRemoteState()) {
+    try {
+      const remote = await fetchRemoteState();
+      if (remote && remote.data) {
+        hydrateStateFromData(remote.data);
+        lastRemoteRevision = typeof remote.revision === "string" ? remote.revision : null;
+        persistLocalSnapshot(getStateSnapshot());
+        return;
+      }
+    } catch (error) {
+      console.warn("No se pudo cargar estado remoto, uso cache local", error);
+    }
+  }
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("casaOrganizada_v2");
     if (!saved) {
@@ -379,10 +446,58 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(getStateSnapshot())
-  );
+  const snapshot = getStateSnapshot();
+  persistLocalSnapshot(snapshot);
+
+  if (shouldUseRemoteState()) {
+    void pushRemoteState(snapshot).catch((error) => {
+      console.error(error);
+      showToast("⚠ No se pudo sincronizar con el servidor");
+    });
+  }
+}
+
+function startRemotePolling() {
+  if (!shouldUseRemoteState()) {
+    return;
+  }
+
+  if (remotePollTimer) {
+    clearInterval(remotePollTimer);
+  }
+
+  remotePollTimer = setInterval(() => {
+    void refreshRemoteState();
+  }, REMOTE_SYNC_INTERVAL_MS);
+}
+
+async function refreshRemoteState() {
+  if (!shouldUseRemoteState()) {
+    return;
+  }
+
+  try {
+    const remote = await fetchRemoteState();
+    if (!remote || !remote.data) {
+      return;
+    }
+
+    const incomingRevision = typeof remote.revision === "string" ? remote.revision : null;
+    if (!incomingRevision || incomingRevision === lastRemoteRevision) {
+      return;
+    }
+
+    hydrateStateFromData(remote.data);
+    lastRemoteRevision = incomingRevision;
+    persistLocalSnapshot(getStateSnapshot());
+    renderPeopleLegend();
+    renderWeekLabel();
+    renderCalendar();
+    renderDebts();
+    renderAssignmentGrid();
+  } catch (error) {
+    console.warn("No se pudo refrescar estado remoto", error);
+  }
 }
 
 function keyFromParts(year, month, day) {
@@ -1035,14 +1150,15 @@ function seedDefaultTasks() {
   saveState();
 }
 
-function initializeApp() {
-  loadState();
+async function initializeApp() {
+  await loadState();
 
   seedDefaultTasks();
   renderPeopleLegend();
   renderWeekLabel();
   renderCalendar();
   renderDebts();
+  startRemotePolling();
 
   setInterval(() => {
     renderCalendar();
@@ -1050,4 +1166,4 @@ function initializeApp() {
   }, 60000);
 }
 
-initializeApp();
+void initializeApp();
