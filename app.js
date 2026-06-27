@@ -577,21 +577,9 @@ function renderTaskRow(grid, task, dates, today) {
   const labelCell = document.createElement("div");
   labelCell.className = "task-label-cell";
 
-  const chips = task.assignments
-    .map((person, dayIndex) => {
-      if (!person) {
-        return null;
-      }
-      const bg = mixColorWithWhite(getPersonColor(person), 0.82);
-      return `<span class="person-badge" style="background:${bg};color:${getPersonColor(person)}">${DAYS_SHORT[dayIndex]}: ${getPersonName(person)}</span>`;
-    })
-    .filter(Boolean)
-    .join(" ");
-
   labelCell.innerHTML = `
     <div class="task-info">
       <div class="task-name" title="${task.name}">${task.name}</div>
-      <div class="task-meta">${chips || "Sin dias asignados"}</div>
       ${task.note ? `<div class="task-meta">Nota: ${task.note}</div>` : ""}
     </div>
     <button class="task-edit-btn" onclick="openEditTask('${task.id}')" title="Editar">✏️</button>
