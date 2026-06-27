@@ -389,6 +389,18 @@ header {
   letter-spacing: 0.01em;
 }
 
+.cell-assignee-name {
+  width: 100%;
+  text-align: center;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
 .person-badge {
   display: inline-flex;
   align-items: center;

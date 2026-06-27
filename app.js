@@ -645,7 +645,10 @@ function renderTaskRow(grid, task, dates, today) {
 
     const content = document.createElement("div");
     content.className = "task-cell-content";
-    content.innerHTML = `<div class="cell-task-name" title="${task.name}">${task.name}</div>`;
+    content.innerHTML = `
+      <div class="cell-task-name" title="${task.name}">${task.name}</div>
+      <div class="cell-assignee-name" title="Responsable: ${getPersonName(assignee)}">${getPersonName(assignee)}</div>
+    `;
 
     btn.onclick = () => toggleCheck(task.id, dateStr, task.name);
     content.appendChild(btn);
